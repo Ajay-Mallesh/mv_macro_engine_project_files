@@ -1,0 +1,48 @@
+# ==========================================================================
+# MULTI-VOLTAGE PHYSICAL DESIGN UPF (UPF 2.0 Compliant)
+# ==========================================================================
+# PROJECT        : Multi-Voltage Macro Engine
+# AUTHOR         : AJAYMALLESH
+# VERSION        : 2.0 (UPF 2.0 / Supply Set Updated)
+# DESCRIPTION    : 2-Voltage Domain (0.95V / 0.75V) UPF Power Intent
+# ==========================================================================
+
+# 1. CREATE POWER DOMAINS
+create_power_domain PD_TOP -include_scope
+# Updated to match the 16-macro RTL subsystem we just created
+create_power_domain PD_LP  -elements {u_lp_ram_subsystem}
+
+# 2. CREATE SUPPLY PORTS & NETS
+create_supply_port VDD_DEFAULT
+create_supply_port VDD_LP
+create_supply_port VSS
+
+create_supply_net VDD_DEFAULT
+create_supply_net VDD_LP
+create_supply_net VSS
+
+connect_supply_net VDD_DEFAULT -ports VDD_DEFAULT
+connect_supply_net VDD_LP      -ports VDD_LP
+connect_supply_net VSS         -ports VSS
+
+# 3. UPF 2.0 SUPPLY SETS (This fixes the UPF-541 error!)
+create_supply_set SS_TOP -function {power VDD_DEFAULT} -function {ground VSS}
+create_supply_set SS_LP  -function {power VDD_LP}      -function {ground VSS}
+
+# 4. ASSIGN PRIMARY SUPPLIES TO DOMAINS
+# Replaces the deprecated UPF 1.0 'set_domain_supply_net' commands
+# upf 2.0
+associate_supply_set SS_TOP -handle PD_TOP.primary
+associate_supply_set SS_LP  -handle PD_LP.primary
+
+# 5. DEFINE VOLTAGE STATES & PST
+add_port_state VDD_DEFAULT -state {ON_095 0.95}
+add_port_state VDD_LP      -state {ON_075 0.75}
+add_port_state VSS         -state {GND 0.00}
+
+create_pst pst_main -supplies {VDD_DEFAULT VDD_LP VSS}
+add_pst_state S_ALL_ON -pst pst_main -state {ON_095 ON_075 GND}
+
+# 6. LEVEL SHIFTER STRATEGIES 
+set_level_shifter ls_in_lp  -domain PD_LP -applies_to inputs  -rule high_to_low -location self
+set_level_shifter ls_out_lp -domain PD_LP -applies_to outputs -rule low_to_high -location parent

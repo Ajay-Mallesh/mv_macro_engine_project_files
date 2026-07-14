@@ -1,0 +1,42 @@
+# ==========================================================================
+# MULTI-VOLTAGE PHYSICAL DESIGN UPF
+# ==========================================================================
+# PROJECT        : Multi-Voltage Macro Engine
+# AUTHOR         : AJAYMALLESH
+# VERSION        : 1.0 (Silicon-Ready UPF)
+# GENERATION DATE: 30/05/2026 12:08:40 PM
+# DESCRIPTION    : 2-Voltage Domain (0.95V / 0.75V) UPF Power Intent
+# ==========================================================================
+
+# 1. CREATE POWER DOMAINS
+create_power_domain PD_TOP -include_scope
+create_power_domain PD_LP  -elements {u_lp_ram_subsystem}
+
+# 2. CREATE SUPPLY PORTS & NETS
+create_supply_port VDD_DEFAULT
+create_supply_port VDD_LP
+create_supply_port VSS
+
+create_supply_net VDD_DEFAULT
+create_supply_net VDD_LP
+create_supply_net VSS
+
+connect_supply_net VDD_DEFAULT -ports VDD_DEFAULT
+connect_supply_net VDD_LP      -ports VDD_LP
+connect_supply_net VSS         -ports VSS
+
+# 3. SET PRIMARY DOMAIN SUPPLIES
+set_domain_supply_net PD_TOP -primary_power_net VDD_DEFAULT -primary_ground_net VSS
+set_domain_supply_net PD_LP  -primary_power_net VDD_LP      -primary_ground_net VSS
+
+# 4. DEFINE VOLTAGE STATES & PST
+add_port_state VDD_DEFAULT -state {ON_095 0.95}
+add_port_state VDD_LP      -state {ON_075 0.75}
+add_port_state VSS         -state {GND 0.00}
+
+create_pst pst_main -supplies {VDD_DEFAULT VDD_LP VSS}
+add_pst_state S_ALL_ON -pst pst_main -state {ON_095 ON_075 GND}
+
+# 5. LEVEL SHIFTER STRATEGIES 
+set_level_shifter ls_in_lp  -domain PD_LP -applies_to inputs  -rule high_to_low -location self
+set_level_shifter ls_out_lp -domain PD_LP -applies_to outputs -rule low_to_high -location parent

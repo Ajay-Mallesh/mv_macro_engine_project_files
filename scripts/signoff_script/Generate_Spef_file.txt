@@ -1,0 +1,5 @@
+* Script to generate mv_macro_engine_cworst.spef
+
+mkdir -p ./outputs/starrc
+
+StarRC ./scripts/starrc_cworst.cmd
